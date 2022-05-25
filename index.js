@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion} = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId} = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -24,6 +24,13 @@ async function run() {
     try {
         await client.connect();
         console.log('connected');
+        const toolsCollection = client.db("electric_tools").collection("tools");
+
+
+        app.get("/tools", async (req, res) => {
+            const result = await toolsCollection.find().sort({ _id: -1 }).toArray();
+            res.send(result);
+          });
     }
     finally{
 
