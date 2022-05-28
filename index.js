@@ -27,8 +27,6 @@ function verifyJWT(req, res, next) {
   });
 }
 
-// mongodb connection
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q9lb9zo.mongodb.net/?retryWrites=true&w=majority`;
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nf8hl.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -41,15 +39,19 @@ async function run() {
         await client.connect();
         console.log('connected');
         const toolsCollection = client.db("electric_tools").collection("tools");
-        const purchaseCollection = client
-        .db("electric_tools")
-        .collection("purchase");
+        const purchaseCollection = client.db("electric_tools").collection("purchase");
         const userCollection = client.db("electric_tools").collection("users");
-        const reviewCollection = client.db("exim").collection("reviews");
+        const reviewCollection = client.db("electric_tools").collection("reviews");
 
 
         app.get("/tools", async (req, res) => {
             const result = await toolsCollection.find().sort({ _id: -1 }).toArray();
+            res.send(result);
+          });
+
+          app.post("/tools", async (req, res) => {
+            const data = req.body;
+            const result = await toolsCollection.insertOne(data);
             res.send(result);
           });
 
@@ -60,20 +62,66 @@ async function run() {
             const tool = await toolsCollection.findOne(query);
             res.send(tool);
           });
-          app.post("/purchase", async (req, res) => {
-            const toolPurchased = req.body;
-            const result = await purchaseCollection.insertOne(toolPurchased);
+
+          app.put("/users", async (req, res) => {
+            const email = req.query.email;
+            const user = req.body;
+            const filter = { email };
+            const options = { upsert: true };
+            const updatedDoc = {
+              $set: user,
+            };
+            const result = await userCollection.updateOne(
+              filter,
+              updatedDoc,
+              options
+            );
+            const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+              expiresIn: "1d",
+            });
+            res.send({ result, accessToken: token });
+          });
+          app.get("/users", async (req, res) => {
+            const result = await userCollection.find().toArray();
             res.send(result);
           });
-          app.get("/purchase", async (req, res) => {
-            const email = req.query.user;
-            const query = { email: email };
-            const orders = await purchaseCollection.find(query).toArray();
-            res.send(orders);
+          app.put("/usersById", async (req, res) => {
+            const id = req.query.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+              $set: {
+                role: "admin",
+              },
+            };
+            const result = await userCollection.updateOne(
+              filter,
+              updatedDoc,
+              options
+            );
+            res.send(result);
+          });
+          app.put("/usersByEmail", async (req, res) => {
+            const email = req.query.email;
+            const mobile = req.body;
+            const filter = { email };
+            const updatedDoc = {
+              $set: mobile,
+            };
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result);
           });
           app.get("/usersByEmail", async (req, res) => {
             const email = req.query.email;
             const result = await userCollection.findOne({ email });
+            res.send(result);
+          });
+
+
+          app.delete("/toolsById", async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: ObjectId(id) };
+            const result = await partsCollection.deleteOne(query);
             res.send(result);
           });
           app.post("/review", async (req, res) => {
@@ -87,6 +135,42 @@ async function run() {
               .sort({ _id: -1 })
               .limit(3)
               .toArray();
+            res.send(result);
+          });
+          app.post("/purchase", async (req, res) => {
+            const purchaseData = req.body;
+            const result = await purchaseCollection.insertOne(purchaseData);
+            res.send(result);
+          });
+          app.get("/purchase", async (req, res) => {
+            const result = await purchaseCollection.find().toArray();
+            res.send(result);
+          });
+          app.get("/purchaseByEmail", verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const result = await purchaseCollection.find({ email }).toArray();
+            res.send(result);
+          });
+          app.get("/purchaseById/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await purchaseCollection.findOne(query);
+            res.send(result);
+          });
+          app.delete("/purchaseById/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await purchaseCollection.deleteOne(query);
+            res.send(result);
+          });
+          app.put("/purchaseById/:id", async (req, res) => {
+            const id = req.params.id;
+            const item = req.body;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+              $set: item,
+            };
+            const result = await purchaseCollection.updateOne(filter, updatedDoc);
             res.send(result);
           });
     }
