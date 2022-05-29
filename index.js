@@ -81,10 +81,12 @@ async function run() {
             });
             res.send({ result, accessToken: token });
           });
+
           app.get("/users", async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
           });
+          
           app.put("/usersById", async (req, res) => {
             const id = req.query.id;
             const filter = { _id: ObjectId(id) };
