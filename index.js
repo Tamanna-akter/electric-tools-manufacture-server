@@ -86,7 +86,7 @@ async function run() {
             const result = await userCollection.find().toArray();
             res.send(result);
           });
-          
+
           app.put("/usersById", async (req, res) => {
             const id = req.query.id;
             const filter = { _id: ObjectId(id) };
@@ -131,6 +131,8 @@ async function run() {
             const result = await reviewCollection.insertOne(review);
             res.send(result);
           });
+
+          // get user review
           app.get("/review", async (req, res) => {
             const result = await reviewCollection
               .find()
